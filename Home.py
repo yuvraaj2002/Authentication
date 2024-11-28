@@ -1,4 +1,6 @@
 import streamlit as st
+import json
+import tempfile
 from streamlit_google_auth import Authenticate
 
 # Load credentials from Streamlit secrets
@@ -17,14 +19,19 @@ client_credentials = {
 st.title('Streamlit Google Auth Example')
 
 if 'connected' not in st.session_state:
-    # Pass the credentials dictionary to the authenticator
-    authenticator = Authenticate(
-        secret_credentials_dict=client_credentials,  # Use the dictionary here
-        cookie_name='my_cookie_name',
-        cookie_key='this_is_secret',
-        redirect_uri=st.secrets["google_credentials"]["redirect_uris"][0],  # Use the first redirect URI
-    )
-    st.session_state["authenticator"] = authenticator
+    # Create a temporary file to store the credentials
+    with tempfile.NamedTemporaryFile(delete=False, mode="w", encoding="utf-8") as temp_file:
+        # Write the credentials to the file
+        json.dump(client_credentials, temp_file)
+
+        # Pass the file path to the authenticator
+        authenticator = Authenticate(
+            secret_credentials_path=temp_file.name,  # Pass the file path here
+            cookie_name='my_cookie_name',
+            cookie_key='this_is_secret',
+            redirect_uri=st.secrets["google_credentials"]["redirect_uris"][0],
+        )
+        st.session_state["authenticator"] = authenticator
 
 # Catch the login event
 st.session_state["authenticator"].check_authentification()
